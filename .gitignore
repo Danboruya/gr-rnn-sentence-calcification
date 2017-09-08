@@ -1,0 +1,9 @@
+# Ignore __pycache__ directory
+__pycache__/
+
+# Ignore data directory and datafiles
+data/
+
+# Ignore consorl log file
+/cLog.txt
+

@@ -40,9 +40,9 @@ def load_data_and_category(positive_data, negative_data):
     neg_sentences = list(open(negative_data, "r").readlines())
     neg_sentences = [s.strip() for s in neg_sentences]
 
-    #print(pos_sentences)
-    #print("===========")
-    #print(neg_sentences)
+    # print(pos_sentences)
+    # print("===========")
+    # print(neg_sentences)
 
     # Create input sentence
     # Step 1. Combining 2 list, Step 2. Cleaning sentence format

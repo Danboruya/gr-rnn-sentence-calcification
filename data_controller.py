@@ -1,10 +1,13 @@
 import re
+import numpy as np
 
 
 class DataSet:
     def __init__(self):
         self.positive_data = []
         self.negative_data = []
+        self.all_data_set = []
+        self.data_set_with_label = []
 
 
 def _string_cleaner(string):
@@ -48,6 +51,10 @@ def _load_data(positive_data_path, negative_data_path):
     # Formatting data
     data_set.positive_data = [_string_cleaner(sentence) for sentence in raw_positive_sentences]
     data_set.negative_data = [_string_cleaner(sentence) for sentence in raw_negative_sentences]
+    data_set.all_data_set = data_set.positive_data + data_set.negative_data
+    var_data_set_label = np.concatenate([[[0, 1] for _ in data_set.positive_data],
+                                         [[1, 0] for _ in data_set.negative_data]], axis=0)
+    data_set.data_set_with_label = [data_set.all_data_set, var_data_set_label]
 
     return data_set
 

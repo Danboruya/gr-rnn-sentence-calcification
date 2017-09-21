@@ -1,5 +1,6 @@
 import re
 import numpy as np
+from tensorflow.contrib import learn
 
 
 class DataSet:
@@ -67,3 +68,41 @@ def load_data_file(pos_data_file_path, neg_data_file_path):
     :return: Data set class object
     """
     return _load_data(pos_data_file_path, neg_data_file_path)
+
+
+def build_vocabulary(positive_data, negative_data, all_data_set):
+    """
+    Build vocabulary data
+    :param positive_data: Positive sentence data
+    :param negative_data: Negative sentence data
+    :param all_data_set: All sentence data
+    :return: Vocabulary data and input data
+    """
+    positive_max_sentence_length = max([len(sentence.split(" ")) for sentence in positive_data])
+    negative_max_sentence_length = max([len(sentence.split(" ")) for sentence in negative_data])
+    data_set_max_sentence_length = max([len(sentence.split(" ")) for sentence in all_data_set])
+
+    vocab_processor = learn.preprocessing.VocabularyProcessor(data_set_max_sentence_length)
+    x = np.array(list(vocab_processor.fit_transform(all_data_set)))
+    vocab_dict = vocab_processor.vocabulary_._mapping
+    sorted_vocab = sorted(vocab_dict.items(), key=lambda x: x[1])
+    vocabulary = list(list(zip(*sorted_vocab))[0])
+
+    pos_vocab_processor = learn.preprocessing.VocabularyProcessor(positive_max_sentence_length)
+    x_pos = np.array(list(pos_vocab_processor.fit_transform(positive_data)))
+    x_pos_as_x = np.array(list(vocab_processor.fit_transform(positive_data)))
+    pos_vocab_dict = pos_vocab_processor.vocabulary_._mapping
+    sorted_pos_vocab = sorted(pos_vocab_dict.items(), key=lambda x_pos: x_pos[1])
+    pos_vocabulary = list(list(zip(*sorted_pos_vocab))[0])
+
+    neg_vocab_processor = learn.preprocessing.VocabularyProcessor(negative_max_sentence_length)
+    x_neg = np.array(list(neg_vocab_processor.fit_transform(negative_data)))
+    x_neg_as_x = np.array(list(vocab_processor.fit_transform(negative_data)))
+    neg_vocab_dict = neg_vocab_processor.vocabulary_._mapping
+    sorted_neg_vocab = sorted(neg_vocab_dict.items(), key=lambda x_neg: x_neg[1])
+    neg_vocabulary = list(list(zip(*sorted_neg_vocab))[0])
+
+    vocab_data = [vocabulary, pos_vocabulary, neg_vocabulary]
+    input_data = [x, x_pos, x_neg, x_pos_as_x, x_neg_as_x]
+
+    return [vocab_data, input_data]

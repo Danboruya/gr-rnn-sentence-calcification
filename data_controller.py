@@ -8,7 +8,7 @@ class DataSet:
         self.positive_data = []
         self.negative_data = []
         self.all_data_set = []
-        self.data_set_with_label = []
+        self.data_set_label = []
 
 
 def _string_cleaner(string):
@@ -53,9 +53,8 @@ def _load_data(positive_data_path, negative_data_path):
     data_set.positive_data = [_string_cleaner(sentence) for sentence in raw_positive_sentences]
     data_set.negative_data = [_string_cleaner(sentence) for sentence in raw_negative_sentences]
     data_set.all_data_set = data_set.positive_data + data_set.negative_data
-    var_data_set_label = np.concatenate([[[0, 1] for _ in data_set.positive_data],
-                                         [[1, 0] for _ in data_set.negative_data]], axis=0)
-    data_set.data_set_with_label = [data_set.all_data_set, var_data_set_label]
+    data_set.data_set_label = np.concatenate([[[0, 1] for _ in data_set.positive_data],
+                                              [[1, 0] for _ in data_set.negative_data]], axis=0)
 
     return data_set
 
@@ -82,12 +81,14 @@ def build_vocabulary(positive_data, negative_data, all_data_set):
     negative_max_sentence_length = max([len(sentence.split(" ")) for sentence in negative_data])
     data_set_max_sentence_length = max([len(sentence.split(" ")) for sentence in all_data_set])
 
+    # Build vocabulary from all data
     vocab_processor = learn.preprocessing.VocabularyProcessor(data_set_max_sentence_length)
     x = np.array(list(vocab_processor.fit_transform(all_data_set)))
     vocab_dict = vocab_processor.vocabulary_._mapping
     sorted_vocab = sorted(vocab_dict.items(), key=lambda x: x[1])
     vocabulary = list(list(zip(*sorted_vocab))[0])
 
+    # Build vocabulary from positive data
     pos_vocab_processor = learn.preprocessing.VocabularyProcessor(positive_max_sentence_length)
     x_pos = np.array(list(pos_vocab_processor.fit_transform(positive_data)))
     x_pos_as_x = np.array(list(vocab_processor.fit_transform(positive_data)))
@@ -95,6 +96,7 @@ def build_vocabulary(positive_data, negative_data, all_data_set):
     sorted_pos_vocab = sorted(pos_vocab_dict.items(), key=lambda x_pos: x_pos[1])
     pos_vocabulary = list(list(zip(*sorted_pos_vocab))[0])
 
+    # Build vocabulary from negative data
     neg_vocab_processor = learn.preprocessing.VocabularyProcessor(negative_max_sentence_length)
     x_neg = np.array(list(neg_vocab_processor.fit_transform(negative_data)))
     x_neg_as_x = np.array(list(vocab_processor.fit_transform(negative_data)))
@@ -102,7 +104,48 @@ def build_vocabulary(positive_data, negative_data, all_data_set):
     sorted_neg_vocab = sorted(neg_vocab_dict.items(), key=lambda x_neg: x_neg[1])
     neg_vocabulary = list(list(zip(*sorted_neg_vocab))[0])
 
+    # Formatting data
     vocab_data = [vocabulary, pos_vocabulary, neg_vocabulary]
     input_data = [x, x_pos, x_neg, x_pos_as_x, x_neg_as_x]
-
     return [vocab_data, input_data]
+
+
+def data_divider(data_set, label_set):
+    """
+    Divide the data for cross validation.
+    This method provide 10% train data form argument data set.
+    Argument data sets are shuffled by random seed 10.
+    :param data_set: Target data set
+    :param label_set: Target data Label list
+    :return: Array of train/test data set and train/test label
+    """
+    counter = 0
+    train_data = []
+    test_data = []
+    train_label = []
+    test_label = []
+
+    # Shuffle operation
+    np.random.seed(10)
+    shuffle_index = np.random.permutation(len(data_set))
+    shuffled_data_set = data_set[shuffle_index]
+    shuffled_label_set = label_set[shuffle_index]
+
+    for sentence in shuffled_data_set:
+        if counter < (len(shuffled_data_set) - (len(shuffled_data_set) * 0.1)):
+            train_data.append(sentence)
+            counter += 1
+        else:
+            test_data.append(sentence)
+            counter += 1
+    counter = 0
+    for label in shuffled_label_set:
+        if counter <= (len(shuffled_label_set) - (len(shuffled_label_set) * 0.1)):
+            train_label.append(label)
+            counter += 1
+        else:
+            test_label.append(label)
+            counter += 1
+    sample_data = [train_data, test_data]
+    sample_label = [train_label, test_label]
+    return [sample_data, sample_label]

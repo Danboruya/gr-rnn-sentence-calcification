@@ -1,5 +1,6 @@
 import re
 import numpy as np
+import os
 from tensorflow.contrib import learn
 
 
@@ -107,6 +108,9 @@ def build_vocabulary(positive_data, negative_data, all_data_set):
     # Formatting data
     vocab_data = [vocabulary, pos_vocabulary, neg_vocabulary]
     input_data = [x, x_pos, x_neg, x_pos_as_x, x_neg_as_x]
+
+    # TODO: Store the vocabulary data
+
     return [vocab_data, input_data]
 
 

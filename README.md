@@ -11,3 +11,10 @@ This project require following environments
 | Python | 3.6.x or later |
 | TensorFlow | 1.2.x or later |
 | numpy | 1.2.x or later |
+
+## Dataset
+This project use following dataset for train and test
+[Movie Review data from Rotten Tomatoes](http://www.cs.cornell.edu/people/pabo/movie-review-data/)
+
+## Reference
+[Seeing stars: Exploiting class relationships for sentiment categorization with respect to rating scales](http://www.cs.cornell.edu/home/llee/papers/pang-lee-stars.home.html)

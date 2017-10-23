@@ -8,6 +8,6 @@ data/
 /cLog.log
 /vocab_dmp.log
 
-# Ignore non used file
+# Ignore unused file
 /net_model.py
 /ExecTest.py

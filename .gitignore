@@ -4,7 +4,10 @@ __pycache__/
 # Ignore data directory and datafiles
 data/
 
-# Ignore consorl log file
+# Ignore console log file
 /cLog.log
 /vocab_dmp.log
 
+# Ignore non used file
+/net_model.py
+/ExecTest.py

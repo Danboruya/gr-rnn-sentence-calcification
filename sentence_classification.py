@@ -4,7 +4,6 @@ import time
 import datetime
 import data_controller
 from RNN_LSTM import RNNwithLSTM
-from tensorflow.contrib import learn
 
 # ==================
 # Parameter settings
@@ -88,7 +87,7 @@ with tf.Graph().as_default():
                 sparsity_summary = tf.summary.scalar("{}/gradient/sparsity".format(var.name), tf.nn.zero_fraction(grad))
                 gradient_summaries.append(gradient_histogram_summary)
                 gradient_summaries.append(sparsity_summary)
-        gradient_summaries_marged = tf.summary.merge(gradient_summaries)
+        gradient_summaries_merged = tf.summary.merge(gradient_summaries)
 
         # Output directory for model and summaries
         timestamp = str(int(time.time()))
@@ -100,3 +99,80 @@ with tf.Graph().as_default():
         accuracy_summary = tf.summary.scalar("accuracy", rnn_lstm.accuracy)
 
         # Train summaries
+        train_summary_op = tf.summary.merge([loss_summary, accuracy_summary, gradient_summaries_merged])
+        train_summary_dir = os.path.join(output_directory, "summaries", "train")
+        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+
+        # Test summaries
+        test_summary_op = tf.summary.merge([loss_summary, accuracy_summary])
+        test_summary_dir = os.path.join(output_directory, "summaries", "test")
+        test_summary_writer = tf.summary.FileWriter(test_summary_dir, sess.graph)
+
+        # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
+        checkpoint_dir = os.path.abspath(os.path.join(output_directory, "checkpoints"))
+        checkpoint_prefix = os.path.join(checkpoint_dir, "model")
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+        saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
+
+        # Save vocabulary
+        vocab_processor.save(os.path.join(output_directory, "vocab"))
+
+        # Initialize all variables for tensorflow
+        sess.run(tf.global_variables_initializer())
+
+
+        def train_step(x_batch, y_batch):
+            """
+            A single training step
+            :param x_batch: Batch for input data
+            :param y_batch: Batch for output data
+            """
+            feed_dict = {
+                # rnn_lstm.input_x: x_batch,
+                # rnn_lstm.input_y: y_batch,
+                # rnn_lstm.dropout_keep_prob: FLAGS.dropout_keep_prob
+            }
+            _, step, summaries, loss, accuracy = sess.run(
+                [train_optimizer, global_step, train_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
+                feed_dict)
+            time_str = datetime.datetime.now().isoformat()
+            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            train_summary_writer.add_summary(summaries, step)
+
+
+        def test_step(x_batch, y_batch, writer=None):
+            """
+            Evaluates model on a test set
+            :param x_batch: Batch for input data
+            :param y_batch: Batch for label data
+            :param writer: Summary writer
+            """
+
+            feed_dict = {
+                # rnn_lstm.input_x: x_batch,
+                # rnn_lstm.input_y: y_batch,
+                # rnn_lstm.dropout_keep_prob: 1.0
+            }
+            step, summaries, loss, accuracy = sess.run([global_step, test_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
+                                                       feed_dict)
+            time_str = datetime.datetime.now().isoformat()
+            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            if writer:
+                writer.add_summary(summaries, step)
+
+        # Generate batches
+        # batches = data_controller.batch_iter(
+        #    list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+        # Training loop. For each batch...
+        # for batch in batches:
+        #    x_batch, y_batch = zip(*batch)
+        #    train_step(x_batch, y_batch)
+        #    current_step = tf.train.global_step(sess, global_step)
+        #    if current_step % FLAGS.evaluate_every == 0:
+        #        print("\nEvaluation:")
+        #        test_step(x_test, y_test, writer=test_summary_writer)
+        #        print("")
+        #    if current_step % FLAGS.checkpoint_every == 0:
+        #        path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+        #        print("Saved model checkpoint to {}\n".format(path))

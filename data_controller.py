@@ -106,10 +106,8 @@ def build_vocabulary(positive_data, negative_data, all_data_set):
     neg_vocabulary = list(list(zip(*sorted_neg_vocab))[0])
 
     # Formatting data
-    vocab_data = [vocabulary, pos_vocabulary, neg_vocabulary]
+    vocab_data = [vocabulary, pos_vocabulary, neg_vocabulary, vocab_processor.vocabulary_]
     input_data = [x, x_pos, x_neg, x_pos_as_x, x_neg_as_x]
-
-    # TODO: Store the vocabulary data
 
     return [vocab_data, input_data]
 

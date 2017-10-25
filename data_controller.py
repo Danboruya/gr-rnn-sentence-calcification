@@ -54,8 +54,10 @@ def _load_data(positive_data_path, negative_data_path):
     data_set.positive_data = [_string_cleaner(sentence) for sentence in raw_positive_sentences]
     data_set.negative_data = [_string_cleaner(sentence) for sentence in raw_negative_sentences]
     data_set.all_data_set = data_set.positive_data + data_set.negative_data
-    data_set.data_set_label = np.concatenate([[[0, 1] for _ in data_set.positive_data],
-                                              [[1, 0] for _ in data_set.negative_data]], axis=0)
+
+    positive_labels = [[0, 1] for _ in data_set.positive_data]
+    negative_labels = [[1, 0] for _ in data_set.negative_data]
+    data_set.data_set_label = np.concatenate([positive_labels, negative_labels], 0)
 
     return data_set
 
@@ -106,8 +108,8 @@ def build_vocabulary(positive_data, negative_data, all_data_set):
     neg_vocabulary = list(list(zip(*sorted_neg_vocab))[0])
 
     # Formatting data
-    vocab_data = [vocabulary, pos_vocabulary, neg_vocabulary, vocab_processor.vocabulary_]
-    input_data = [x, x_pos, x_neg, x_pos_as_x, x_neg_as_x]
+    vocab_data = [vocabulary, pos_vocabulary, neg_vocabulary, vocab_processor]
+    input_data = [x, x_pos, x_neg, x_pos_as_x, x_neg_as_x, data_set_max_sentence_length]
 
     return [vocab_data, input_data]
 
@@ -142,7 +144,7 @@ def data_divider(data_set, label_set):
             counter += 1
     counter = 0
     for label in shuffled_label_set:
-        if counter <= (len(shuffled_label_set) - (len(shuffled_label_set) * 0.1)):
+        if counter < (len(shuffled_label_set) - (len(shuffled_label_set) * 0.1)):
             train_label.append(label)
             counter += 1
         else:
@@ -151,3 +153,27 @@ def data_divider(data_set, label_set):
     sample_data = [train_data, test_data]
     sample_label = [train_label, test_label]
     return [sample_data, sample_label]
+
+
+def batch_iter(data, batch_size, n_epoch, shuffle=True):
+    """
+    Generates a batch iterator for a dataset.
+    :param data: Data set (input_x, input_y)
+    :param batch_size: The number of batch
+    :param n_epoch: The number of epoch
+    :param shuffle: Whether shuffle is enable or disable
+    """
+    data = np.array(data)
+    data_size = len(data)
+    num_batches_per_epoch = int((len(data)-1)/batch_size) + 1
+    for epoch in range(n_epoch):
+        # Shuffle the data at each epoch
+        if shuffle:
+            shuffle_indices = np.random.permutation(np.arange(data_size))
+            shuffled_data = data[shuffle_indices]
+        else:
+            shuffled_data = data
+        for batch_num in range(num_batches_per_epoch):
+            start_index = batch_num * batch_size
+            end_index = min((batch_num + 1) * batch_size, data_size)
+            yield shuffled_data[start_index:end_index]

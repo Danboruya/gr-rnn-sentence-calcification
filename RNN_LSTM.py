@@ -31,9 +31,10 @@ class RnnWithLstm(object):
         print("Embedding: Done")
 
         # Create RNN as hidden layer
-        with tf.name_scope("RNN"):
+        with tf.name_scope("RNN_Cell"):
             # For test creation, now we provide only basic lstm cell
             cell = tf.contrib.rnn.BasicLSTMCell(n_unit, forget_bias=1.0)
+            # self.initial_state = cell.zero_state(batch_size, tf.float32)
             self.initial_state = cell.zero_state(tf.shape(self.input_x)[0], tf.float32)
             print(self.initial_state)
             self.state = self.initial_state

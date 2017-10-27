@@ -168,7 +168,7 @@ with tf.Graph().as_default():
             feed_dict = {
                 rnn_lstm.input_x: x_batch,
                 rnn_lstm.input_y: y_batch,
-                rnn_lstm.dropout_keep_prob: 1.0
+                rnn_lstm.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
             step, summaries, loss, accuracy = sess.run(
                 [global_step, test_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],

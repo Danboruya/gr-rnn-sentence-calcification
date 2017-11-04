@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 import os
 import time
 import datetime
@@ -19,7 +20,7 @@ flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity-ut
 
 # ==Hyper parameters==
 flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of word embedding")
-flags.DEFINE_float("n_unit", 2, "The number of unit of lstm")
+flags.DEFINE_float("n_unit", 32, "The number of unit of lstm")
 flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability")
 flags.DEFINE_integer("n_class", 2, "The number of classifier")
 
@@ -109,6 +110,12 @@ with tf.Graph().as_default():
         loss_summary = tf.summary.scalar("loss", rnn_lstm.loss)
         accuracy_summary = tf.summary.scalar("accuracy", rnn_lstm.accuracy)
 
+        # Train mini batch summaries
+        train_mini_batch_summary_op = tf.summary.merge([loss_summary, accuracy_summary, gradient_summaries_merged])
+        train_mini_batch_summary_dir = os.path.join(output_directory, "summaries", "train_mini_bach")
+        train_mini_batch_summary_writer = tf.summary.FileWriter(train_mini_batch_summary_dir, sess.graph)
+        print("Train mini batch summary has been set")
+
         # Train summaries
         train_summary_op = tf.summary.merge([loss_summary, accuracy_summary, gradient_summaries_merged])
         train_summary_dir = os.path.join(output_directory, "summaries", "train")
@@ -138,31 +145,44 @@ with tf.Graph().as_default():
         print("Boot Session")
 
 
-        def train_step(x_batch, y_batch):
+        def train_step(x_batch, y_batch, current_epoch, is_batch=True):
             """
             A single training step
             :param x_batch: Batch for input data
             :param y_batch: Batch for output data
+            :param current_epoch: Current epoch
+            :param is_batch: Whether batch or not batch train
             """
             feed_dict = {
                 rnn_lstm.input_x: x_batch,
                 rnn_lstm.input_y: y_batch,
                 rnn_lstm.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
-            _, step, summaries, loss, accuracy = sess.run(
-                [train_optimizer, global_step, train_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
-                feed_dict)
-            time_str = datetime.datetime.now().isoformat()
-            train_summary_writer.add_summary(summaries, step)
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            if is_batch:
+                _, step, summaries, loss, accuracy = sess.run(
+                    [train_optimizer, global_step, train_mini_batch_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
+                    feed_dict)
+                time_str = datetime.datetime.now().isoformat()
+                train_mini_batch_summary_writer.add_summary(summaries, step)
+                print("{}: step {}, epoch {}, loss {:g}, acc {:g}".format(time_str, step, current_epoch,
+                                                                          loss, accuracy))
+            else:
+                _, step, summaries, loss, accuracy = sess.run(
+                    [train_optimizer, global_step, train_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
+                    feed_dict)
+                time_str = datetime.datetime.now().isoformat()
+                train_summary_writer.add_summary(summaries, step)
+                print("Train")
+                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
 
 
-        def test_step(x_batch, y_batch, writer=None):
+        def test_step(x_batch, y_batch, writer=None, is_batch=False):
             """
             Evaluates model on a test set
             :param x_batch: Batch for input data
             :param y_batch: Batch for label data
             :param writer: Summary writer
+            :param is_batch: Whether batch or not batch
             """
 
             feed_dict = {
@@ -174,23 +194,48 @@ with tf.Graph().as_default():
                 [global_step, test_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            if is_batch:
+                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            else:
+                print("Test")
+                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             if writer:
                 writer.add_summary(summaries, step)
 
+
         # Generate batches
-        batches = data_controller.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.n_epoch)
+        # batches = data_controller.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.n_epoch)
         # Training loop. For each batch...
-        for batch in batches:
-            x_batch, y_batch = zip(*batch)
-            train_step(x_batch, y_batch)
-            current_step = tf.train.global_step(sess, global_step)
-            if current_step % FLAGS.evaluate_every == 0:
-                print("\nEvaluation:")
-                test_step(x_test, y_test, writer=test_summary_writer)
-                print("===============")
+        # for batch in batches:
+        #    x_batch, y_batch = zip(*batch)
+        #    train_step(x_batch, y_batch)
+        #    current_step = tf.train.global_step(sess, global_step)
+        #    if current_step % FLAGS.evaluate_every == 0:
+        #        print("\nEvaluation:")
+        #        test_step(x_test, y_test, writer=test_summary_writer)
+        #        print("===============")
+        #    if current_step % FLAGS.checkpoint_every == 0:
+        #        path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+        #        print("Saved model checkpoint to {}\n".format(path))
+
+        # Training loop
+        x_train = np.array(x_train)
+        y_train = np.array(y_train)
+        x_test = np.array(x_test)
+        y_test = np.array(y_test)
+        n_data = len(x_train)
+        for epoch in range(FLAGS.n_epoch):
+            sff_idx = np.random.permutation(n_data)
+            for idx in range(0, n_data, FLAGS.batch_size):
+                batch_x = x_train[sff_idx[idx: idx + FLAGS.batch_size if idx + FLAGS.batch_size < n_data else n_data]]
+                batch_t = y_train[sff_idx[idx: idx + FLAGS.batch_size if idx + FLAGS.batch_size < n_data else n_data]]
+                train_step(batch_x, batch_t, epoch, is_batch=True)
+                current_step = tf.train.global_step(sess, global_step)
+            if epoch == 0 or epoch % 5 == 0 or epoch == (FLAGS.n_epoch - 1):
+                print("============")
+                train_step(x_train, y_train, epoch, is_batch=False)
+                test_step(x_test, y_test, writer=test_summary_writer, is_batch=False)
+                print("============")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                 print("Saved model checkpoint to {}\n".format(path))
-
-

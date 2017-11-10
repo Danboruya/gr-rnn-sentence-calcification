@@ -34,6 +34,7 @@ class RnnWithLstm(object):
         with tf.name_scope("RNN_Cell"):
             # For test creation, now we provide only basic lstm cell
             cell = tf.contrib.rnn.BasicLSTMCell(n_unit, forget_bias=1.0)
+            # cell = tf.nn.rnn_cell.DropoutWrapper(cell=cell, input_keep_prob=self.dropout_keep_prob, output_keep_prob=self.dropout_keep_prob)
             # self.initial_state = cell.zero_state(batch_size, tf.float32)
             self.initial_state = cell.zero_state(tf.shape(self.input_x)[0], tf.float32)
             print(self.initial_state)
@@ -51,15 +52,15 @@ class RnnWithLstm(object):
         print("RNN: Done")
 
         # Dropout in hidden layer
-        with tf.name_scope("dropout"):
-            self.h_drop = tf.nn.dropout(self.output, keep_prob=self.dropout_keep_prob)
-        print("Dropout: Done")
+        # with tf.name_scope("dropout"):
+        #    self.h_drop = tf.nn.dropout(self.output, keep_prob=self.dropout_keep_prob)
+        # print("Dropout: Done")
 
         # Output layer
         with tf.name_scope("output"):
             w = tf.get_variable("w", [n_unit, n_class])
             b = tf.get_variable("b", [n_class])
-            self.scores = tf.nn.xw_plus_b(self.h_drop, w, b, name="scores")
+            self.scores = tf.nn.xw_plus_b(self.output, w, b, name="scores")
             self.predictions = tf.argmax(self.scores, axis=1, name="predictions")
         print("Output: Done")
 

@@ -19,13 +19,13 @@ flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity-ut
                     "Data source for the negative data.")
 
 # ==Hyper parameters==
-flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of word embedding")
-flags.DEFINE_float("n_unit", 32, "The number of unit of lstm")
+flags.DEFINE_integer("embedding_dim", 256, "Dimensionality of word embedding")
+flags.DEFINE_float("n_unit", 16, "The number of unit of lstm")
 flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability")
 flags.DEFINE_integer("n_class", 2, "The number of classifier")
 
 # ==Training parameters==
-flags.DEFINE_integer("batch_size", 64, "Batch size")
+flags.DEFINE_integer("batch_size", 32, "Batch size")
 flags.DEFINE_integer("n_epoch", 100, "The number of training epochs")
 flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps")
 flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps")
@@ -117,10 +117,10 @@ with tf.Graph().as_default():
         print("Train mini batch summary has been set")
 
         # Train summaries
-        train_summary_op = tf.summary.merge([loss_summary, accuracy_summary, gradient_summaries_merged])
-        train_summary_dir = os.path.join(output_directory, "summaries", "train")
-        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
-        print("Train summary has been set")
+        # train_summary_op = tf.summary.merge([loss_summary, accuracy_summary, gradient_summaries_merged])
+        # train_summary_dir = os.path.join(output_directory, "summaries", "train")
+        # train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+        # print("Train summary has been set")
 
         # Test summaries
         test_summary_op = tf.summary.merge([loss_summary, accuracy_summary])
@@ -162,16 +162,16 @@ with tf.Graph().as_default():
                 _, step, summaries, loss, accuracy = sess.run(
                     [train_optimizer, global_step, train_mini_batch_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
                     feed_dict)
-                time_str = datetime.datetime.now().isoformat()
+                # time_str = datetime.datetime.now().isoformat()
                 train_mini_batch_summary_writer.add_summary(summaries, step)
-                print("{}: step {}, epoch {}, loss {:g}, acc {:g}".format(time_str, step, current_epoch,
-                                                                          loss, accuracy))
+                print("step {}, epoch {}, loss {:g}, acc {:g}".format(step, current_epoch, loss, accuracy))
             else:
                 _, step, summaries, loss, accuracy = sess.run(
-                    [train_optimizer, global_step, train_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
+                    # [train_optimizer, global_step, train_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
+                    [train_optimizer, global_step, rnn_lstm.loss, rnn_lstm.accuracy],
                     feed_dict)
                 time_str = datetime.datetime.now().isoformat()
-                train_summary_writer.add_summary(summaries, step)
+                # train_summary_writer.add_summary(summaries, step)
                 print("Train")
                 print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
 
@@ -233,9 +233,9 @@ with tf.Graph().as_default():
                 current_step = tf.train.global_step(sess, global_step)
             if epoch == 0 or epoch % 5 == 0 or epoch == (FLAGS.n_epoch - 1):
                 print("============")
-                train_step(x_train, y_train, epoch, is_batch=False)
+                # train_step(x_train, y_train, epoch, is_batch=False)
                 test_step(x_test, y_test, writer=test_summary_writer, is_batch=False)
                 print("============")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                print("Saved model checkpoint to {}\n".format(path))
+                print("Saved model checkpoint to {}".format(path))

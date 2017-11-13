@@ -34,13 +34,14 @@ class RnnWithLstm(object):
         with tf.name_scope("RNN_Cell"):
             # For test creation, now we provide only basic lstm cell
             cell = tf.contrib.rnn.BasicLSTMCell(n_unit, forget_bias=1.0)
-            # cell = tf.nn.rnn_cell.DropoutWrapper(cell=cell, input_keep_prob=self.dropout_keep_prob, output_keep_prob=self.dropout_keep_prob)
+            # cell = tf.contrib.rnn.BasicRNNCell(n_unit)
+            cell = tf.nn.rnn_cell.DropoutWrapper(cell=cell, output_keep_prob=self.dropout_keep_prob)
             # self.initial_state = cell.zero_state(batch_size, tf.float32)
             self.initial_state = cell.zero_state(tf.shape(self.input_x)[0], tf.float32)
             print(self.initial_state)
             self.state = self.initial_state
             outputs = []
-            with tf.variable_scope('LSTM'):
+            with tf.variable_scope('RNN'):
                 for time_step in range(sentence_length):
                     if time_step > 0:
                         tf.get_variable_scope().reuse_variables()

@@ -20,14 +20,15 @@ flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity-ut
 
 # ==Hyper parameters==
 flags.DEFINE_integer("embedding_dim", 256, "Dimensionality of word embedding")
-flags.DEFINE_float("n_unit", 16, "The number of unit of lstm")
-flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability")
+flags.DEFINE_float("n_unit", 64, "The number of unit of lstm")
+flags.DEFINE_float("dropout_keep_prob", 0.8, "Dropout keep probability")
 flags.DEFINE_integer("n_class", 2, "The number of classifier")
+flags.DEFINE_float("learning_rate", 1e-3, "Learning rate")
 
 # ==Training parameters==
 flags.DEFINE_integer("batch_size", 32, "Batch size")
-flags.DEFINE_integer("n_epoch", 100, "The number of training epochs")
-flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps")
+flags.DEFINE_integer("n_epoch", 500, "The number of training epochs")
+# flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps")
 flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps")
 flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store")
 
@@ -85,7 +86,9 @@ with tf.Graph().as_default():
 
         # Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
-        optimizer = tf.train.AdamOptimizer(1e-3)
+        optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
+        # optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
+        # optimizer = tf.train.AdadeltaOptimizer(learning_rate=FLAGS.learning_rate)
         print("Optimizer has been set")
         grads_and_vars = optimizer.compute_gradients(rnn_lstm.loss)
         train_optimizer = optimizer.apply_gradients(grads_and_vars, global_step=global_step)

@@ -1,12 +1,14 @@
+import sys
 import tensorflow as tf
+from tensorflow.contrib import rnn
 
 
-class RnnWithLstm(object):
+class Model(object):
     """
-    Sentence classification on RNN with LSTM.
+    Net work model for Sentence classification.
     """
     def __init__(self, sentence_length, n_class, vocab_size,
-                 embedding_size, n_unit, batch_size, f_bias):
+                 embedding_size, n_unit, n_layer, cell_type, f_bias):
         """
         Initialize the instance of this class.
         :param sentence_length: Max length of sentence
@@ -14,37 +16,47 @@ class RnnWithLstm(object):
         :param vocab_size: The number of vocabulary
         :param embedding_size: Word embedding size
         :param n_unit: The number of unit on LSTM cell
-        :param batch_size: Size of batch
-        :param f_bias: Forget bias for LSTM cell
+        :param n_layer: The number of hidden layer
+        :param cell_type: The type of cell on hidden layer
+        :param f_bias: Forget bias
         """
 
         # Set Placeholders for input layer, output layer and dropout
-        self.input_x = tf.placeholder(tf.int32, [None, sentence_length], name="input_x")
+        self.input_x = tf.placeholder(tf.int32, shape=(None, sentence_length), name="input_x")
         self.input_y = tf.placeholder(tf.float32, [None, n_class], name="input_y")
         self.dropout_keep_prob = tf.placeholder(tf.float32, shape=None, name="keep_prob")
 
         # Word embedding layer as input layer
-        with tf.device('/cpu:0'), tf.name_scope("word_embedding"):
-            self.w = tf.Variable(tf.random_uniform([vocab_size, embedding_size],
-                                                   -1.0, 1.0), name="W")
-            self.embedded_chars = tf.nn.embedding_lookup(self.w, self.input_x)
+        with tf.device('/cpu:0'), tf.name_scope("Input_layer"):
+            self.embeddings = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0), name="embeddings")
+            self.embedding = tf.get_variable("embedding", [vocab_size, embedding_size], dtype=tf.float32)
+            self.embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x)
             # self.embedded_chars_exp = tf.expand_dims(self.embedded_chars, -1)
         print("Embedding: Done")
 
         # Create RNN as hidden layer
-        with tf.name_scope("RNN_Cell"):
-            # For test creation, now we provide only basic lstm cell
-            # cell = tf.contrib.rnn.BasicLSTMCell(n_unit, forget_bias=f_bias)
-            cell = tf.contrib.rnn.LSTMCell(n_unit, forget_bias=f_bias)
-            # cell = tf.contrib.rnn.BasicRNNCell(n_unit)
-            cell = tf.nn.rnn_cell.DropoutWrapper(cell=cell, output_keep_prob=self.dropout_keep_prob)
-            # self.initial_state = cell.zero_state(batch_size, tf.float32)
-            self.initial_state = cell.zero_state(tf.shape(self.embedded_chars)[0], tf.float32)
-            # self.initial_state = cell.zero_state(tf.shape(self.embedded_chars)[0], tf.float32)
-            print(self.initial_state)
-            self.state = self.initial_state
+        with tf.name_scope("Hidden_layer"):
+            # Create cell
+            stacked_rnn = []
+            for _ in range(n_layer):
+                if cell_type is "RNN":
+                    cell = rnn.BasicRNNCell(n_unit)
+                elif cell_type is "BasicLSTM":
+                    cell = rnn.BasicLSTMCell(n_unit, forget_bias=f_bias)
+                elif cell_type is "LSTM":
+                    cell = rnn.LSTMCell(n_unit, forget_bias=f_bias)
+                elif cell_type is "GRU":
+                    cell = rnn.GRUCell(n_unit)
+                else:
+                    print("CellTypeError: Can not set cell on hidden layer: " + str(cell_type))
+                    sys.exit()
+                cell = tf.nn.rnn_cell.DropoutWrapper(cell=cell, output_keep_prob=self.dropout_keep_prob)
+                stacked_rnn.append(cell)
+            cell = rnn.MultiRNNCell(cells=stacked_rnn)
+            self.state = cell.zero_state(tf.shape(self.embedded_chars)[0], tf.float32)
+            print(self.state)
             outputs = []
-            with tf.variable_scope('LSTM'):
+            with tf.variable_scope(cell_type):
                 for time_step in range(sentence_length):
                     if time_step > 0:
                         tf.get_variable_scope().reuse_variables()
@@ -52,8 +64,6 @@ class RnnWithLstm(object):
                     outputs.append(cell_output)
             self.output = outputs[-1]
             print(self.output)
-            # self.output = tf.concat(output, 1)
-            # self.h_out = tf.reshape(self.output, [-1, n_unit])
         print("RNN: Done")
 
         # Dropout in hidden layer
@@ -62,20 +72,20 @@ class RnnWithLstm(object):
         # print("Dropout: Done")
 
         # Output layer
-        with tf.name_scope("output"):
+        with tf.name_scope("Output_layer"):
             w = tf.get_variable("w", [n_unit, n_class])
             b = tf.get_variable("b", [n_class])
-            self.scores = tf.nn.softmax(tf.matmul(self.output, w) + b)
             # self.scores = tf.nn.xw_plus_b(self.output, w, b, name="scores")
+            self.scores = tf.nn.softmax(tf.matmul(self.output, w) + b, name="scores")
             self.predictions = tf.argmax(self.scores, axis=1, name="predictions")
         print("Output: Done")
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
             # losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
-            # self.loss = tf.reduce_mean(losses)
-            # self.loss = - tf.reduce_sum(
-            #    self.scores * tf.log(self.input_y) + (1 - self.scores) * tf.log(1 - self.input_y), name="Cross-entropy")
+            # self.loss = tf.reduce_mean(losses, name="Cross-entropy")
+            # self.loss = - tf.reduce_sum(self.scores * tf.log(self.input_y)
+            #                            + (1 - self.scores) * tf.log(1 - self.input_y), name="Cross-entropy")
             self.loss = tf.reduce_mean(tf.square(self.input_y - self.scores), name="Square-loss")
         print("Loss: Done")
 

@@ -1,10 +1,11 @@
 import tensorflow as tf
+from tensorflow.contrib.tensorboard.plugins import projector
 import numpy as np
 import os
 import time
 import datetime
 import data_controller
-from RNN_LSTM import RnnWithLstm
+from Model import Model
 
 # ==================
 # Parameter settings
@@ -20,17 +21,20 @@ flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity-ut
 
 # ==Hyper parameters==
 flags.DEFINE_integer("embedding_dim", 256, "Dimensionality of word embedding")
-flags.DEFINE_float("n_unit", 64, "The number of unit of lstm")
-flags.DEFINE_float("dropout_keep_prob", 0.8, "Dropout keep probability")
+flags.DEFINE_integer("n_cell", 64, "The number of unit of cell")
+flags.DEFINE_integer("n_layer", 3, "The number of hidden layer")
+flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability")
+flags.DEFINE_float("learning_rate", 1e-6, "Learning rate")
 flags.DEFINE_integer("n_class", 2, "The number of classifier")
-flags.DEFINE_float("learning_rate", 1e-3, "Learning rate")
+flags.DEFINE_float("f_bias", 1.0, "Forget bias")
+flags.DEFINE_string("cell_type", "BasicLSTM", "The type of cell on hidden layer")
 
 # ==Training parameters==
 flags.DEFINE_integer("batch_size", 32, "Batch size")
-flags.DEFINE_integer("n_epoch", 500, "The number of training epochs")
-# flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps")
+flags.DEFINE_integer("n_epoch", 350, "The number of training epochs")
+flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps")
 flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps")
-flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store")
+flags.DEFINE_integer("num_checkpoints", 1, "Number of checkpoints to store")
 
 # ==Other parameters==
 flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
@@ -56,14 +60,14 @@ data_set, data_set_label = data_controller.data_divider(raw_input_data[0], raw_d
 
 x_train = data_set[0]
 y_train = data_set_label[0]
-x_test = data_set[1]
-y_test = data_set_label[1]
+x_valid = data_set[1]
+y_valid = data_set_label[1]
 sentence_length = raw_input_data[5]
 n_class = FLAGS.n_class
 vocab_processor = vocab_data[3]
 
 print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
-print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_test)))
+print("Train/Valid split: {:d}/{:d}".format(len(y_train), len(y_valid)))
 
 # ========
 # Training
@@ -73,24 +77,24 @@ with tf.Graph().as_default():
                                     log_device_placement=FLAGS.log_device_placement)
     sess = tf.Session(config=session_config)
     with sess.as_default():
-        rnn_lstm = RnnWithLstm(
+        net = Model(
             sentence_length=sentence_length,
             n_class=n_class,
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
-            n_unit=FLAGS.n_unit,
-            batch_size=FLAGS.batch_size
+            n_unit=FLAGS.n_cell,
+            n_layer=FLAGS.n_layer,
+            cell_type=FLAGS.cell_type,
+            f_bias=FLAGS.f_bias
         )
 
         print("Network instance has been created")
 
         # Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
-        optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
-        # optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
-        # optimizer = tf.train.AdadeltaOptimizer(learning_rate=FLAGS.learning_rate)
+        optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
         print("Optimizer has been set")
-        grads_and_vars = optimizer.compute_gradients(rnn_lstm.loss)
+        grads_and_vars = optimizer.compute_gradients(net.loss)
         train_optimizer = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
         print("Complected training procedure set")
 
@@ -110,8 +114,8 @@ with tf.Graph().as_default():
         print("Writing to {}".format(output_directory))
 
         # Loss and accuracy summary
-        loss_summary = tf.summary.scalar("loss", rnn_lstm.loss)
-        accuracy_summary = tf.summary.scalar("accuracy", rnn_lstm.accuracy)
+        loss_summary = tf.summary.scalar("loss", net.loss)
+        accuracy_summary = tf.summary.scalar("accuracy", net.accuracy)
 
         # Train mini batch summaries
         train_mini_batch_summary_op = tf.summary.merge([loss_summary, accuracy_summary, gradient_summaries_merged])
@@ -147,7 +151,6 @@ with tf.Graph().as_default():
         sess.run(tf.global_variables_initializer())
         print("Boot Session")
 
-
         def train_step(x_batch, y_batch, current_epoch, is_batch=True):
             """
             A single training step
@@ -157,88 +160,88 @@ with tf.Graph().as_default():
             :param is_batch: Whether batch or not batch train
             """
             feed_dict = {
-                rnn_lstm.input_x: x_batch,
-                rnn_lstm.input_y: y_batch,
-                rnn_lstm.dropout_keep_prob: FLAGS.dropout_keep_prob
+                net.input_x: x_batch,
+                net.input_y: y_batch,
+                net.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
             if is_batch:
-                _, step, summaries, loss, accuracy = sess.run(
-                    [train_optimizer, global_step, train_mini_batch_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
+                _, step, summaries, loss, accuracy, output = sess.run(
+                    [train_optimizer, global_step, train_mini_batch_summary_op, net.loss,
+                     net.accuracy, net.output],
                     feed_dict)
                 # time_str = datetime.datetime.now().isoformat()
                 train_mini_batch_summary_writer.add_summary(summaries, step)
-                print("step {}, epoch {}, loss {:g}, acc {:g}".format(step, current_epoch, loss, accuracy))
+                print("step {}, epoch {}, loss {:g}, accuracy {:g}".format(step, current_epoch, loss, accuracy))
             else:
                 _, step, summaries, loss, accuracy = sess.run(
                     # [train_optimizer, global_step, train_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
-                    [train_optimizer, global_step, rnn_lstm.loss, rnn_lstm.accuracy],
+                    [train_optimizer, global_step, net.loss, net.accuracy],
                     feed_dict)
                 time_str = datetime.datetime.now().isoformat()
                 # train_summary_writer.add_summary(summaries, step)
                 print("Train")
-                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                print("{}: step {}, loss {:g}, accuracy {:g}".format(time_str, step, loss, accuracy))
 
 
-        def test_step(x_batch, y_batch, writer=None, is_batch=False):
+        def valid_step(_x_valid, _y_valid, writer=None):
             """
-            Evaluates model on a test set
-            :param x_batch: Batch for input data
-            :param y_batch: Batch for label data
+            Validate model on a validation set
+            :param _x_valid: input data
+            :param _y_valid: label data
             :param writer: Summary writer
-            :param is_batch: Whether batch or not batch
             """
-
             feed_dict = {
-                rnn_lstm.input_x: x_batch,
-                rnn_lstm.input_y: y_batch,
-                rnn_lstm.dropout_keep_prob: FLAGS.dropout_keep_prob
+                net.input_x: _x_valid,
+                net.input_y: _y_valid,
+                net.dropout_keep_prob: 1.0
             }
             step, summaries, loss, accuracy = sess.run(
-                [global_step, test_summary_op, rnn_lstm.loss, rnn_lstm.accuracy],
+                [global_step, test_summary_op, net.loss, net.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            if is_batch:
-                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
-            else:
-                print("Test")
-                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            print("Test")
+            print("{}: step {}, loss {:g}, accuracy {:g}".format(time_str, step, loss, accuracy))
             if writer:
                 writer.add_summary(summaries, step)
 
-
-        # Generate batches
-        # batches = data_controller.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.n_epoch)
-        # Training loop. For each batch...
-        # for batch in batches:
-        #    x_batch, y_batch = zip(*batch)
-        #    train_step(x_batch, y_batch)
-        #    current_step = tf.train.global_step(sess, global_step)
-        #    if current_step % FLAGS.evaluate_every == 0:
-        #        print("\nEvaluation:")
-        #        test_step(x_test, y_test, writer=test_summary_writer)
-        #        print("===============")
-        #    if current_step % FLAGS.checkpoint_every == 0:
-        #        path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-        #        print("Saved model checkpoint to {}\n".format(path))
+        # Save embedding data
+        config = projector.ProjectorConfig()
+        embedding = config.embeddings.add()
+        embedding.tensor_name = net.embeddings.name
+        embedding.metadata_path = os.path.join(output_directory, 'metadata.tsv')
+        embedding_summary_writer = tf.summary.FileWriter(output_directory)
+        projector.visualize_embeddings(embedding_summary_writer, config)
 
         # Training loop
         x_train = np.array(x_train)
         y_train = np.array(y_train)
-        x_test = np.array(x_test)
-        y_test = np.array(y_test)
+        x_valid = np.array(x_valid)
+        y_valid = np.array(y_valid)
         n_data = len(x_train)
+        current_step = 0
         for epoch in range(FLAGS.n_epoch):
             sff_idx = np.random.permutation(n_data)
             for idx in range(0, n_data, FLAGS.batch_size):
                 batch_x = x_train[sff_idx[idx: idx + FLAGS.batch_size if idx + FLAGS.batch_size < n_data else n_data]]
                 batch_t = y_train[sff_idx[idx: idx + FLAGS.batch_size if idx + FLAGS.batch_size < n_data else n_data]]
-                train_step(batch_x, batch_t, epoch, is_batch=True)
-                current_step = tf.train.global_step(sess, global_step)
+                if len(batch_t) is FLAGS.batch_size:
+                    train_step(batch_x, batch_t, epoch, is_batch=True)
+                    current_step = tf.train.global_step(sess, global_step)
             if epoch == 0 or epoch % 5 == 0 or epoch == (FLAGS.n_epoch - 1):
                 print("============")
                 # train_step(x_train, y_train, epoch, is_batch=False)
-                test_step(x_test, y_test, writer=test_summary_writer, is_batch=False)
+                valid_step(x_valid, y_valid, writer=test_summary_writer)
                 print("============")
-            if current_step % FLAGS.checkpoint_every == 0:
+            # if current_step % FLAGS.checkpoint_every == 0:
+            if epoch % FLAGS.checkpoint_every == 0 or epoch == (FLAGS.n_epoch - 1):
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                 print("Saved model checkpoint to {}".format(path))
+            saver.save(sess, os.path.join(output_directory, "model.ckpt"), global_step=current_step)
+
+        print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
+        print("Train/Valid split: {:d}/{:d}".format(len(y_train), len(y_valid)))
+        print("Parameters:")
+        for attribute, value in sorted(FLAGS.__flags.items()):
+            print("{}={}".format(attribute.upper(), value))
+        print("===================")
+

@@ -153,3 +153,18 @@ def data_divider(data_set, label_set):
     sample_data = [train_data, test_data]
     sample_label = [train_label, test_label]
     return [sample_data, sample_label]
+
+
+def test_data_provider(data, batch_size):
+    """
+    Generates a test data.
+    :param data: Test data sentences
+    :param batch_size: The number of batch
+    """
+    data = np.array(data)
+    data_size = len(data)
+    for idx in range(data_size):
+        start_index = idx * batch_size
+        end_index = min((idx + 1) * batch_size, data_size)
+        test_data = data[start_index:end_index]
+        yield test_data

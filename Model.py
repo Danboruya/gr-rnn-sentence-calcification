@@ -39,13 +39,13 @@ class Model(object):
             # Create cell
             stacked_rnn = []
             for _ in range(n_layer):
-                if cell_type is "RNN":
+                if cell_type == "RNN":
                     cell = rnn.BasicRNNCell(n_unit)
-                elif cell_type is "BasicLSTM":
+                elif cell_type == "BasicLSTM":
                     cell = rnn.BasicLSTMCell(n_unit, forget_bias=f_bias)
-                elif cell_type is "LSTM":
+                elif cell_type == "LSTM":
                     cell = rnn.LSTMCell(n_unit, forget_bias=f_bias)
-                elif cell_type is "GRU":
+                elif cell_type == "GRU":
                     cell = rnn.GRUCell(n_unit)
                 else:
                     print("CellTypeError: Can not set cell on hidden layer: " + str(cell_type))

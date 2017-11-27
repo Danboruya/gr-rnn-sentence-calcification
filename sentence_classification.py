@@ -41,6 +41,7 @@ flags.DEFINE_integer("num_checkpoints", 1, "Number of checkpoints to store")
 # ==Other parameters==
 flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+flags.DEFINE_string("exp_name", "exp1", "Experiment name")
 
 FLAGS = flags.FLAGS
 FLAGS._parse_flags()
@@ -157,7 +158,8 @@ def train(x_train, y_train, x_valid, y_valid, sentence_length, n_class, vocab_pr
 
             # Output directory for model and summaries
             timestamp = str(int(time.time()))
-            output_directory = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp + "_" + FLAGS.cell_type))
+            output_directory = os.path.abspath(os.path.join(os.path.curdir, "runs", FLAGS.cell_type +
+                                                            "_" + FLAGS.exp_name + "_" + timestamp))
             print("Writing to {}".format(output_directory))
 
             # Loss and accuracy summary

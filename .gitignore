@@ -11,4 +11,5 @@ runs/
 
 # Ignore unused file
 /net_model.py
+/RNN_LSTM.py
 /ExecTest.py

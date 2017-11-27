@@ -136,7 +136,7 @@ def data_divider(data_set, label_set):
     shuffled_label_set = label_set[shuffle_index]
 
     for sentence in shuffled_data_set:
-        if counter < (len(shuffled_data_set) - (len(shuffled_data_set) * 0.1)):
+        if counter < (len(shuffled_data_set) - (len(shuffled_data_set) * 0.01)):
             train_data.append(sentence)
             counter += 1
         else:
@@ -144,7 +144,7 @@ def data_divider(data_set, label_set):
             counter += 1
     counter = 0
     for label in shuffled_label_set:
-        if counter < (len(shuffled_label_set) - (len(shuffled_label_set) * 0.1)):
+        if counter < (len(shuffled_label_set) - (len(shuffled_label_set) * 0.01)):
             train_label.append(label)
             counter += 1
         else:
@@ -155,25 +155,16 @@ def data_divider(data_set, label_set):
     return [sample_data, sample_label]
 
 
-def batch_iter(data, batch_size, n_epoch, shuffle=True):
+def test_data_provider(data, batch_size):
     """
-    Generates a batch iterator for a dataset.
-    :param data: Data set (input_x, input_y)
+    Generates a test data.
+    :param data: Test data sentences
     :param batch_size: The number of batch
-    :param n_epoch: The number of epoch
-    :param shuffle: Whether shuffle is enable or disable
     """
     data = np.array(data)
     data_size = len(data)
-    num_batches_per_epoch = int((len(data)-1)/batch_size) + 1
-    for epoch in range(n_epoch):
-        # Shuffle the data at each epoch
-        if shuffle:
-            shuffle_indices = np.random.permutation(np.arange(data_size))
-            shuffled_data = data[shuffle_indices]
-        else:
-            shuffled_data = data
-        for batch_num in range(num_batches_per_epoch):
-            start_index = batch_num * batch_size
-            end_index = min((batch_num + 1) * batch_size, data_size)
-            yield shuffled_data[start_index:end_index]
+    for idx in range(data_size):
+        start_index = idx * batch_size
+        end_index = min((idx + 1) * batch_size, data_size)
+        test_data = data[start_index:end_index]
+        yield test_data

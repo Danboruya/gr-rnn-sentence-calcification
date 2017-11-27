@@ -9,8 +9,8 @@ This project require following environments
 |Environment|Version|
 |:---------:|:-----:|
 | Python | 3.6.x or later |
-| TensorFlow | 1.2.x or later |
-| numpy | 1.2.x or later |
+| TensorFlow | 1.3.x |
+| numpy | 1.13.x |
 
 ## Dataset
 This project use following dataset for train and test

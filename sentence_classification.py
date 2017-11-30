@@ -35,7 +35,7 @@ flags.DEFINE_string("cell_type", "GRU", "The type of cell on hidden layer")
 flags.DEFINE_integer("batch_size", 32, "Batch size")
 flags.DEFINE_integer("n_epoch", 300, "The number of training epochs")
 flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps")
-flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps")
+flags.DEFINE_integer("checkpoint_every", 1, "Save model after this many steps")
 flags.DEFINE_integer("num_checkpoints", 1, "Number of checkpoints to store")
 
 # ==Other parameters==

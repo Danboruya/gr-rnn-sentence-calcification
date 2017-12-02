@@ -1,7 +1,7 @@
 # gr-rnn-sentence-calcification
 
 ## Description
-This project is targeted for sentence classification by RNN with LSTM.
+This project is targeted for sentence classification by RNN. 
 
 ## Requirements
 This project require following environments

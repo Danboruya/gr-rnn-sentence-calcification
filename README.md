@@ -1,4 +1,4 @@
-# gr-rnn-sentence-calcification
+# gr-rnn-sentence-classification 
 
 ## Description
 This project is targeted for sentence classification by RNN. 

@@ -37,4 +37,4 @@ python Classifier.py --help
 ```  
 
 ## License
-This software is released under thei Apache License 2.0, see LICENSE.
+This software is released under the Apache License 2.0, see LICENSE.

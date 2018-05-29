@@ -44,7 +44,6 @@ flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on dev
 flags.DEFINE_string("exp_name", "exp1", "Experiment name")
 
 FLAGS = flags.FLAGS
-FLAGS._parse_flags()
 
 
 def load_data():

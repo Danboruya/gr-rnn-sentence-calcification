@@ -27,7 +27,7 @@ class Model(object):
         self.dropout_keep_prob = tf.placeholder(tf.float32, shape=None, name="keep_prob")
 
         # Word embedding layer as input layer
-        with tf.device('/cpu:0'), tf.name_scope("Input_layer"):
+        with tf.name_scope("Input_layer"):
             self.embeddings = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0), name="embeddings")
             self.embedding = tf.get_variable("embedding", [vocab_size, embedding_size], dtype=tf.float32)
             self.embedded_chars = tf.nn.embedding_lookup(self.embedding, self.input_x)

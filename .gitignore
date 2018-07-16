@@ -4,6 +4,7 @@ __pycache__/
 # Ignore data directory and datafiles
 data/
 runs/
+.idea/
 
 # Ignore console log file
 /cLog.log
@@ -13,3 +14,4 @@ runs/
 /net_model.py
 /RNN_LSTM.py
 /ExecTest.py
+/.DS_Store

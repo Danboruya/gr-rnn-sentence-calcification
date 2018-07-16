@@ -30,6 +30,8 @@ flags.DEFINE_float("learning_rate", 1e-6, "Learning rate")
 flags.DEFINE_integer("n_class", 2, "The number of classifier")
 flags.DEFINE_float("f_bias", 1.0, "Forget bias")
 flags.DEFINE_string("cell_type", "GRU", "The type of cell on hidden layer")
+flags.DEFINE_string("filter_sizes", "3,4,4", "The size of cnn filter")
+flags.DEFINE_integer("n_filter", 4, "The number of filter par filter size")
 
 # ==Training parameters==
 flags.DEFINE_integer("batch_size", 32, "Batch size")
@@ -131,7 +133,9 @@ def train(x_train, y_train, x_valid, y_valid, sentence_length, n_class, vocab_pr
                 n_unit=FLAGS.n_cell,
                 n_layer=FLAGS.n_layer,
                 cell_type=FLAGS.cell_type,
-                f_bias=FLAGS.f_bias
+                f_bias=FLAGS.f_bias,
+                filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
+                n_filter=FLAGS.n_filter
             )
 
             print("Network instance has been created")

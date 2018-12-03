@@ -13,10 +13,13 @@ This project require following environments
 | numpy | 1.13.x |
 
 ## Dataset
+
 This project use following dataset for train and test.  
+* Sentence polarity dataset v1.0
 [Movie Review data from Rotten Tomatoes](http://www.cs.cornell.edu/people/pabo/movie-review-data/)
 
 ## Reference of Dataset
+
 [Seeing stars: Exploiting class relationships for sentiment categorization with respect to rating scales](http://www.cs.cornell.edu/home/llee/papers/pang-lee-stars.home.html)
 
 ## Usage

@@ -47,9 +47,9 @@ class Model(object):
                 for _ in range(n_layer):
                     if cell_type == "RNN":
                         cell = rnn.BasicRNNCell(n_unit)
-                    elif cell_type == "BasicLSTM":
-                        cell = rnn.BasicLSTMCell(n_unit, forget_bias=f_bias)
                     elif cell_type == "LSTM":
+                        cell = rnn.BasicLSTMCell(n_unit, forget_bias=f_bias)
+                    elif cell_type == "PLSTM":
                         cell = rnn.LSTMCell(n_unit, forget_bias=f_bias)
                     elif cell_type == "GRU":
                         cell = rnn.GRUCell(n_unit)

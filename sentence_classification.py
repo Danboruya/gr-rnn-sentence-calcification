@@ -195,6 +195,9 @@ def train(x_train, y_train, x_valid, y_valid, sentence_length, n_class, vocab_pr
             vocab_processor.save(os.path.join(output_directory, "vocab"))
             print("Vocabulary has been saved")
 
+            # Out path for result of validation
+            valid_out_path = os.path.join(output_directory, "valid.log")
+
             # Initialize all variables for tensorflow
             sess.run(tf.global_variables_initializer())
             print("Boot Session")
@@ -211,13 +214,14 @@ def train(x_train, y_train, x_valid, y_valid, sentence_length, n_class, vocab_pr
                     net.input_y: y_batch,
                     net.dropout_keep_prob: FLAGS.dropout_keep_prob
                 }
-                _, step, summaries, loss, accuracy, output = sess.run(
+                _, _train_step, _train_summaries, _train_loss, _train_accuracy, output = sess.run(
                     [train_optimizer, global_step, train_mini_batch_summary_op, net.loss,
                      net.accuracy, net.output],
                     feed_dict)
                 # time_str = datetime.datetime.now().isoformat()
-                train_mini_batch_summary_writer.add_summary(summaries, step)
-                print("step {}, epoch {}, loss {:g}, accuracy {:g}".format(step, current_epoch, loss, accuracy))
+                train_mini_batch_summary_writer.add_summary(_train_summaries, _train_step)
+                print("step {}, epoch {}, loss {:g}, accuracy {:g}".format(_train_step, current_epoch,
+                                                                           _train_loss, _train_accuracy))
 
             def valid_step(_x_valid, _y_valid, writer=None):
                 """
@@ -231,14 +235,13 @@ def train(x_train, y_train, x_valid, y_valid, sentence_length, n_class, vocab_pr
                     net.input_y: _y_valid,
                     net.dropout_keep_prob: 1.0
                 }
-                step, summaries, loss, accuracy = sess.run(
+                _step, _summaries, _loss, _accuracy = sess.run(
                     [global_step, validate_summary_op, net.loss, net.accuracy],
                     feed_dict)
-                time_str = datetime.datetime.now().isoformat()
-                print("Validation")
-                print("{}: step {}, loss {:g}, accuracy {:g}".format(time_str, step, loss, accuracy))
+                _time_str = datetime.datetime.now().isoformat()
                 if writer:
-                    writer.add_summary(summaries, step)
+                    writer.add_summary(_summaries, _step)
+                return [_time_str, _step, _loss, _accuracy]
 
             # Training loop
             x_train = np.array(x_train)
@@ -259,8 +262,17 @@ def train(x_train, y_train, x_valid, y_valid, sentence_length, n_class, vocab_pr
                         current_step = tf.train.global_step(sess, global_step)
                 if epoch == 0 or epoch % 5 == 0 or epoch == (FLAGS.n_epoch - 1):
                     print("============")
+                    print("Validation")
                     # train_step(x_train, y_train, epoch, is_batch=False)
-                    valid_step(x_valid, y_valid, writer=validate_summary_writer)
+                    time_str, step, loss, accuracy = valid_step(x_valid, y_valid, writer=validate_summary_writer)
+                    print("{}: step {}, loss {:g}, accuracy {:g}".format(time_str, step, loss, accuracy))
+                    with open(valid_out_path, 'a+') as f:
+                        f.write("============" + "\n")
+                        f.write("Validation" + "\n")
+                        f.write("{}: step {}, loss {:g}, accuracy {:g}, epoch: {:d}".format(time_str, step, loss,
+                                                                                            accuracy, epoch) + "\n")
+                        f.write("============" + "\n")
+                        f.write("\n")
                     print("============")
                 # if current_step % FLAGS.checkpoint_every == 0:
                 if epoch % FLAGS.checkpoint_every == 0 or epoch == (FLAGS.n_epoch - 1):

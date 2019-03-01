@@ -50,7 +50,7 @@ class Model(object):
                     elif cell_type == "LSTM":
                         cell = rnn.BasicLSTMCell(n_unit, forget_bias=f_bias)
                     elif cell_type == "PLSTM":
-                        cell = rnn.LSTMCell(n_unit, forget_bias=f_bias)
+                        cell = rnn.LSTMCell(n_unit, forget_bias=f_bias, use_peepholes=True)
                     elif cell_type == "GRU":
                         cell = rnn.GRUCell(n_unit)
                     else:

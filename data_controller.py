@@ -1,6 +1,5 @@
 import re
 import numpy as np
-import os
 from tensorflow.contrib import learn
 
 
@@ -45,10 +44,10 @@ def _load_data(positive_data_path, negative_data_path):
     # Load files
     with open(positive_data_path, 'r') as raw_positive_data, \
             open(negative_data_path, 'r') as raw_negative_data:
-        raw_positive_data.readline()
-        raw_negative_data.readline()
-        raw_positive_sentences = [s.strip() for s in raw_positive_data]
-        raw_negative_sentences = [s.strip() for s in raw_negative_data]
+        raw_positive_sentences = list(raw_positive_data.readlines())
+        raw_negative_sentences = list(raw_negative_data.readlines())
+        raw_positive_sentences = [s.strip() for s in raw_positive_sentences]
+        raw_negative_sentences = [s.strip() for s in raw_negative_sentences]
 
     # Formatting data
     data_set.positive_data = [_string_cleaner(sentence) for sentence in raw_positive_sentences]

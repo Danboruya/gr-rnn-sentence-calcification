@@ -1,6 +1,5 @@
 import tensorflow as tf
 from tensorflow.contrib import learn
-from tensorflow.contrib.tensorboard.plugins import projector
 import numpy as np
 import os
 import time
@@ -43,6 +42,7 @@ flags.DEFINE_integer("num_checkpoints", 1, "Number of checkpoints to store")
 # ==Other parameters==
 flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+flags.DEFINE_boolean("enable_data_check", False, "Only run checking dataset function")
 flags.DEFINE_string("exp_name", "exp1", "Experiment name")
 
 FLAGS = flags.FLAGS
@@ -102,9 +102,10 @@ def print_info(vocab_processor, y_train, y_valid):
     print("===================")
     print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
     print("Train/Valid split: {:d}/{:d}".format(len(y_train), len(y_valid)))
+    print("Total dataset entities: {:d}".format(len(y_train) + len(y_valid)))
     print("Parameters:")
-    for _attribute, _value in sorted(FLAGS.__flags.items()):
-        print("{}={}".format(_attribute.upper(), _value))
+    for key in FLAGS.__flags.keys():
+        print('{}={}'.format(key, getattr(FLAGS, key)))
     print("===================")
 
 
@@ -239,14 +240,6 @@ def train(x_train, y_train, x_valid, y_valid, sentence_length, n_class, vocab_pr
                 if writer:
                     writer.add_summary(summaries, step)
 
-            # Save embedding data
-            # config = projector.ProjectorConfig()
-            # embedding = config.embeddings.add()
-            # embedding.tensor_name = net.embeddings.name
-            # embedding.metadata_path = os.path.join(output_directory, 'metadata.tsv')
-            # embedding_summary_writer = tf.summary.FileWriter(output_directory)
-            # projector.visualize_embeddings(embedding_summary_writer, config)
-
             # Training loop
             x_train = np.array(x_train)
             y_train = np.array(y_train)
@@ -333,9 +326,16 @@ def test(x_test, y_test, x_raw, out_dir, check_dir, vocab_processor, y_train, y_
             f.write("{}={}".format(_attribute.upper(), _value) + "\n")
 
 
-def main():
+def run_test():
     """
-    Main function for this program.
+    Test run for checking a dataset.
+    """
+    load_data()
+
+
+def proc():
+    """
+    Main processes for this application.
     Load train data -> train -> Load test data -> test
     """
     components = load_data()
@@ -345,6 +345,18 @@ def main():
     test(test_components[0], test_components[1], test_components[2], out_dir[0], out_dir[1],
          components[6], components[1], components[3])
     print_info(components[6], components[1], components[3])
+
+
+def main():
+    """
+    Main function for this program.
+    run_test(): A function for checking a dataset.
+    proc(): A function for main process; Load train data -> Train -> Load test data -> test
+    """
+    if FLAGS.enable_data_check:
+        run_test()
+    else:
+        proc()
 
 
 if __name__ == "__main__":

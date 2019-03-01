@@ -9,7 +9,7 @@ This project require following environments
 |Environment|Version|
 |:---------:|:-----:|
 | Python | 3.6.x or later |
-| TensorFlow | 1.4.x - 1.8.x|
+| TensorFlow | 1.4.x - 1.12.0|
 | numpy | 1.13.x |
 
 ## Dataset

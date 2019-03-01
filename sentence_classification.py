@@ -279,6 +279,9 @@ def test(x_test, y_test, x_raw, out_dir, check_dir, vocab_processor, y_train, y_
     :param x_raw: Original sentence of test data
     :param out_dir: Output directory path
     :param check_dir: Check point directory path
+    :param vocab_processor: Vocabulary processor object
+    :param y_train: Label data for training
+    :param y_valid: Label data for validating
     """
     output_dir_path = out_dir
     checkpoint_file = tf.train.latest_checkpoint(check_dir)
